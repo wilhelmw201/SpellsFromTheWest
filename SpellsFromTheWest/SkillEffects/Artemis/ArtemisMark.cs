@@ -26,7 +26,7 @@ namespace GameData.Domains.SpecialEffect.SpellsFromTheWest.Artemis
             base.OnEnable(context);
             if (IsDirect)
             {
-                ArtemisCommon.SetHuntParameter(huntCount: 2, difficultyMultiplier: (float)1.2);
+                ArtemisCommon.SetHuntParameter(huntCount: 2, difficultyMultiplier: (float)1.1);
             }
             else
             {

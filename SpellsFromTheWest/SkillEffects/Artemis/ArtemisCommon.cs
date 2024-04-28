@@ -106,8 +106,8 @@ namespace SpellsFromTheWestBackend.SkillEffects.Artemis
 
         public static void CreateNewHunt(DataContext context, bool forceCreate = false, int lastHuntBodyPart = -1) 
         {
-            int huntDifficulty = DomainManager.Combat.GetCombatCharacter(false).GetCharacter().GetConsummateLevel()*25+400;
-            huntDifficulty = (int)(huntDifficulty * _difficultyMultiplier * 0.12);
+            int huntDifficulty = DomainManager.Combat.GetCombatCharacter(false).GetCharacter().GetConsummateLevel()*25+300;
+            huntDifficulty = (int)(huntDifficulty * _difficultyMultiplier);
             List<int> bodyParts = new List<int> { 0, 1, 2, 3, 4, 5, 6}; // shuffle this, this is our try create hunt order.
             Shuffle(bodyParts, context);
 

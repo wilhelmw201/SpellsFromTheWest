@@ -153,7 +153,7 @@ namespace SpellsFromTheWest
             NewEvents.ClearDefenseSkillEndingHandlers();
         }
 
-
+        /* no longer needed as we are patching CreateItem
         [HarmonyPrefix]
         [HarmonyPatch(typeof(BuildingDomain), "GetWestRandomItemByGarde")]
         public static bool GetWestRandomItemByGarde_PreFix(DataContext context, sbyte grade, ItemKey __result)
@@ -164,18 +164,67 @@ namespace SpellsFromTheWest
             {
                 Utils.DebugBreak();
                 int templateId = CreateSkillBookObjHelper.GetRandomBookTemplateId(context, grade);
-                __result = DomainManager.Item.CreateSkillBook(context, (short)templateId);
+                //__result = DomainManager.Item.CreateSkillBook(context, (short)templateId);
+                __result = new ItemKey(ItemSubType.GetType((short)1001), 0, (short)templateId, -1);
                 return false;
             }
             return true;
-        }
+        }*/
 
+        /* causes merchants to not have any items :(
+         * [HarmonyPrefix]
+         [HarmonyPatch(typeof(ItemDomain), "CreateMisc")]
+         public static bool CreateMisc_PreFix(DataContext context, short templateId, ItemKey __result)
+         {
+
+             __result = new ItemKey();
+
+             if (replaceChance <= 0) { return true; }
+             Utils.DebugBreak();
+             var template = Config.Misc.Instance[templateId];
+             if (template.ItemSubType == 1203 && context.Random.CheckPercentProb(replaceChance))
+             {
+                 Utils.DebugBreak();
+                 int newtemplateId = CreateSkillBookObjHelper.GetRandomBookTemplateId(context, template.TemplateId);
+                 __result = DomainManager.Item.CreateSkillBook(context, (short)newtemplateId);
+                 return false;
+             }
+             return true;
+         }*/
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(ItemDomain), "CreateItem")]
+        public static bool CreateItem(DataContext context, ref sbyte itemType, ref short templateId, ItemKey __result)
+        {
+
+            __result = new ItemKey();
+
+            if (replaceChance <= 0 || itemType != 12 || !(templateId <= 72 && templateId >= 28)) { return true; }
+            var template = Config.Misc.Instance[templateId];
+            if (context.Random.CheckPercentProb(replaceChance))
+            {
+                Utils.DebugBreak();
+
+                short newTemplateId = (short)CreateSkillBookObjHelper.GetRandomBookTemplateId(context, template.Grade);
+                if (newTemplateId > 0)
+                {
+
+                    itemType = 10;
+                    templateId = (short)newTemplateId;
+
+                }
+            }
+            return true;
+        }
+        /*
         [HarmonyPrefix]
         [HarmonyPatch(typeof(ItemDomain), "CreateMisc")]
         public static bool CreateMisc_PreFix(DataContext context, short templateId, ItemKey __result)
         {
+
             __result = new ItemKey();
+
             if (replaceChance <= 0) { return true; }
+            Utils.DebugBreak();
             var template = Config.Misc.Instance[templateId];
             if (template.ItemSubType == 1203 && context.Random.CheckPercentProb(replaceChance))
             {
@@ -185,8 +234,7 @@ namespace SpellsFromTheWest
                 return false;
             }
             return true;
-        }
-
+        }*/
         public override void OnLoadedArchiveData()
         {
             DataContext context = DataContextManager.GetCurrentThreadDataContext();

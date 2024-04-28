@@ -37,7 +37,7 @@ namespace SpellsFromTheWestBackend
 {
     internal class Utils
     {
-        static Boolean _debugging = true;
+        static Boolean _debugging = false;
         public static void MyLog(string message) 
         { 
             if (_debugging)
