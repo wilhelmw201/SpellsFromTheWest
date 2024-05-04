@@ -20,7 +20,9 @@ namespace SpellsFromTheWestBackend.SkillEffects.Artemis
 
 
         public delegate void OnArtemisHuntComplete(DataContext context, int attackerId, int defenderId, sbyte bodyPart);
+        public delegate void OnArtemisNewHunt(DataContext context, CombatCharacter attacker, CombatCharacter defender, sbyte bodyPart);
         private static OnArtemisHuntComplete _ArtemisHuntCompleteCallback;
+        private static OnArtemisNewHunt _ArtemisNewHuntCallback;
         private static float _difficultyMultiplier = 1;
         private static int _huntCount = 1;
         public static void SetHuntParameter(float difficultyMultiplier=-1, int huntCount=-1)
@@ -65,48 +67,69 @@ namespace SpellsFromTheWestBackend.SkillEffects.Artemis
         }
         public static void ArtemisCommonRegisterOnHuntComplete(OnArtemisHuntComplete handler)
         {
+            if (_ArtemisHuntCompleteCallback == null)
+            {
+                _ArtemisHuntCompleteCallback -= handler;
+            }
+            _ArtemisHuntCompleteCallback += handler;
+            /*
             bool shouldAdd = true;
-
             if (_ArtemisHuntCompleteCallback != null)
             {
                 foreach (var registeredCb in _ArtemisHuntCompleteCallback.GetInvocationList())
                 {
-                    if (registeredCb.Method== handler.Method && registeredCb.Target == handler.Target)
+                    if (registeredCb.Method == handler.Method && registeredCb.Target == handler.Target)
                     {
                         shouldAdd = false;
                         break;
                     }
                 }
             }
-            if ( shouldAdd)
+            if (shouldAdd)
             {
                 _ArtemisHuntCompleteCallback += handler;
+            }*/
+
+        }
+        public static void ArtemisCommonRegisterOnNewHunt(OnArtemisNewHunt handler)
+        {
+            if (_ArtemisNewHuntCallback == null)
+            {
+                _ArtemisNewHuntCallback -= handler;
             }
-            Utils.MyLog("Register Artemis Hunt cb. Current len" + _ArtemisHuntCompleteCallback.GetInvocationList().Length);
+
+            _ArtemisNewHuntCallback += handler;
+
         }
         public static void ArtemisCommonUnregisterOnHuntComplete(OnArtemisHuntComplete handler)
         {
-            try
-            {
-                _ArtemisHuntCompleteCallback -= handler;
-                Utils.MyLog("UnRegister Artemis Hunt cb. Current len" + _ArtemisHuntCompleteCallback.GetInvocationList().Length);
-            }
-            catch (Exception e)
-            {
+            if (_ArtemisHuntCompleteCallback == null) return;
+            _ArtemisHuntCompleteCallback -= handler;
 
-            }
+        }
+
+        public static void ArtemisCommonUnregisterOnNewHunt(OnArtemisNewHunt handler)
+        {
+            if (_ArtemisNewHuntCallback == null) return;
+            _ArtemisNewHuntCallback -= handler;
         }
 
         public static void CreateHuntOnPart(DataContext context, int bodyPart, int difficulty)
         {
-            DomainManager.Combat.AddSkillEffect(context, DomainManager.Combat.GetCombatCharacter(false),
+            var attacker = DomainManager.Combat.GetCombatCharacter(true);
+            var defender = DomainManager.Combat.GetCombatCharacter(false);
+            DomainManager.Combat.AddSkillEffect(context, defender,
                 new SkillEffectKey((short)(4000 + bodyPart), true),
                 (short)difficulty, (short)difficulty, true);
+            if (_ArtemisNewHuntCallback != null)
+            {
+                _ArtemisNewHuntCallback(context, attacker, defender, (sbyte)bodyPart);
+            }
         }
 
         public static void CreateNewHunt(DataContext context, bool forceCreate = false, int lastHuntBodyPart = -1) 
         {
-            int huntDifficulty = DomainManager.Combat.GetCombatCharacter(false).GetCharacter().GetConsummateLevel()*25+300;
+            int huntDifficulty = DomainManager.Combat.GetCombatCharacter(false).GetCharacter().GetConsummateLevel()*50+150;
             huntDifficulty = (int)(huntDifficulty * _difficultyMultiplier);
             List<int> bodyParts = new List<int> { 0, 1, 2, 3, 4, 5, 6}; // shuffle this, this is our try create hunt order.
             Shuffle(bodyParts, context);
@@ -176,7 +199,11 @@ namespace SpellsFromTheWestBackend.SkillEffects.Artemis
                 // Artemis listeners listen to this event to check if the hunt is complete.
                 // Listening to RemoveSkillEffect might not be a good idea due to Xiaoyuyang.
                 DomainManager.Combat.ChangeSkillEffectCount(context, combatChar, correctHunt.Key, (short)(-(short)huntEffectValue), true, false);
-                _ArtemisHuntCompleteCallback(context, attackerId, defenderId, bodyPart);
+                if (_ArtemisHuntCompleteCallback != null)
+                {
+                    _ArtemisHuntCompleteCallback(context, attackerId, defenderId, bodyPart);
+
+                }
 
                 CreateNewHunt(context, false, bodyPart);
             }

@@ -11,13 +11,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Config;
+using SpellsFromTheWestBackend.SkillEffects.Hephaestus.Common;
 
-namespace SpellsFromTheWestBackend.SkillEffects.Hephaestus
+namespace GameData.Domains.SpecialEffect.SpellsFromTheWest.Hephaestus
 {
-    // Token: 0x020007B4 RID: 1972
+
     public abstract class HephaestusBoilerPlateCuiPo : CombatSkillEffectBase
     {
-        public abstract List<string> GetInfluencedFields();
+        public abstract List<Tuple<string, Type>> GetInfluencedFields();
         public abstract string GetIdentifierDirect();
         public abstract string GetIdentifierIndirect();
 
@@ -42,12 +43,15 @@ namespace SpellsFromTheWestBackend.SkillEffects.Hephaestus
         // Token: 0x060045C8 RID: 17864 RVA: 0x0022D33C File Offset: 0x0022B53C
         private void OnCastSkillEnd(DataContext context, int charId, bool isAlly, short skillId, sbyte power, bool interrupted)
         {
-            if (base.CombatChar.GetCharacter().GetId() != DomainManager.Taiwu.GetTaiwuCharId()) { return; }
+            if (skillId != this.SkillTemplateId || base.CombatChar.GetCharacter().GetId() != DomainManager.Taiwu.GetTaiwuCharId()) { return; }
             CombatCharacter enemyChar = DomainManager.Combat.GetCombatCharacter(false);
             if (DomainManager.Combat.IsCharacterFallen(enemyChar))
             {
+
                 CombatCharacter ourChar = DomainManager.Combat.GetCombatCharacter(true);
                 var holdingWeaponId = ourChar.GetWeapons()[ourChar.GetUsingWeaponIndex()].TemplateId;
+                if (!HephaestusCommon.CanReforge(holdingWeaponId)) return;
+
                 bool forgeResult = HephaestusCommon.TryReforgeWeapon(IsDirect ? GetIdentifierDirect() : GetIdentifierIndirect(), holdingWeaponId);
                 if (forgeResult)
                 {

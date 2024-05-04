@@ -76,31 +76,6 @@ namespace GameData.Domains.SpecialEffect.SpellsFromTheWest.Artemis
         private void OnSkillAttackEnd(DataContext context, CombatCharacter attacker, CombatCharacter defender, short skillId, int index, bool hit)
         {
             base.CombatChar.GetAttackSkillPower();
-            /*
-
-            bool flag = attacker != base.CombatChar || skillId != base.SkillTemplateId || index != 3 || !base.CombatCharPowerMatchAffectRequire(0);
-            if (!flag)
-            {
-                List<sbyte> bodyPartRandomPool = ObjectPool<List<sbyte>>.Instance.Get();
-                bodyPartRandomPool.Clear();
-                for (sbyte part = 0; part < 7; part += 1)
-                {
-                    bool flag2 = part != base.CombatChar.SkillAttackBodyPart;
-                    if (flag2)
-                    {
-                        bodyPartRandomPool.Add(part);
-                    }
-                }
-                for (int i = 0; i < (int)this.AttackExtraPartCount; i++)
-                {
-                    int partIndex = context.Random.Next(0, bodyPartRandomPool.Count);
-                    DomainManager.Combat.DoSkillHit(attacker, defender, base.SkillTemplateId, bodyPartRandomPool[partIndex], attacker.SkillHitType[attacker.SkillFinalAttackHitIndex]);
-                    bodyPartRandomPool.RemoveAt(partIndex);
-                }
-                ObjectPool<List<sbyte>>.Instance.Return(bodyPartRandomPool);
-                base.ShowSpecialEffectTips(0);
-            }*/
-
             if (attacker != base.CombatChar || index != 3 || !hit) { return; }
             if (this.EffectCount <= 0) { return; }
             var currentHunts = ArtemisCommon.GetCurrentHunts(context);

@@ -27,6 +27,9 @@ using Config;
 using GameData.Domains.Mod;
 using System.Xml.Linq;
 using GameData.Domains.Taiwu;
+using SpellsFromTheWestBackend.SkillEffects.Hephaestus.Common;
+using GameData.Domains.Global;
+using GameData.Domains.SpecialEffect.SpellsFromTheWest.Misc;
 namespace SpellsFromTheWest
 {
 
@@ -49,6 +52,7 @@ namespace SpellsFromTheWest
             AdaptableLog.Info($"Load SpellsFromTheWest Backend. Current Directory {Directory.GetCurrentDirectory()}");
             harmony = Harmony.CreateAndPatchAll(typeof(SpellsFromTheWestBackendPlugin));
             AddConfig.DoAppend();
+            //AddCharacterFeature.DoAdd(); removed due to bug
             harmony.PatchAll(typeof(PatchAddTranspiler1));
             harmony.PatchAll(typeof(PatchAddTranspiler2));
             harmony.PatchAll(typeof(DefenseSkillEndedTranspiler));
@@ -56,49 +60,62 @@ namespace SpellsFromTheWest
 
             DomainManager.Mod.GetSetting(base.ModIdStr, "ReplaceChance", ref replaceChance);
             DomainManager.Mod.GetSetting(base.ModIdStr, "LearnEverything", ref learnAll);
-            /*
-            Thread.Sleep(5000);
-            Utils.DebugBreak();
-            FieldInfo fieldInfo = typeof(Config.Weapon).GetField("_dataArray", BindingFlags.NonPublic | BindingFlags.Instance);
-            List<Config.WeaponItem> allWeapons = (List<Config.WeaponItem>)fieldInfo.GetValue(Config.Weapon.Instance);
-            
 
-            typeof(WeaponItem).GetField("BaseWeight").SetValue(allWeapons[188], 3000);
-            Utils.DebugBreak();*/
-
+            HephaestusCommon.InitReforgeGongFa();
         }
-        static  string thisModIdStr;
+
+        public override void OnLoadedArchiveData()
+        {
+            DataContext context = DataContextManager.GetCurrentThreadDataContext();
+            base.OnEnterNewWorld();
+            Utils.DebugBreak();
+            if (learnAll)
+            {
+                var taiwuId = DomainManager.Taiwu.GetTaiwuCharId();
+                foreach (short templateId in CreateCombatSkillObjHelper.CombatSkillTemplateIds)
+                {
+                    if (templateId >= 4000 && templateId <= 4006)
+                    {
+                        continue;
+                    }
+                    if (templateId >= 6500 && templateId <= 6506)
+                    {
+                        continue;
+                    }
+                    if (templateId == 4114) continue;
+                    TaiwuCombatSkill skill;
+                    if (!DomainManager.Taiwu.TryGetElement_CombatSkills(templateId, out skill))
+                    {
+                        DomainManager.Taiwu.TaiwuLearnCombatSkill(context, templateId, ushort.MaxValue);
+                        DomainManager.Taiwu.TryGetElement_CombatSkills(templateId, out skill);
+                    }
+                    var element_CombatSkills =
+                        DomainManager.CombatSkill.GetElement_CombatSkills(new CombatSkillKey(
+                           taiwuId, templateId));
+                    element_CombatSkills.SetPracticeLevel(100, context);
+
+
+                }
+            }
+            //Events.RegisterHandler_MakeLove(DoInfection);
+            HephaestusCommon.OnSaveLoaded();
+        }
+
+
+        static string thisModIdStr;
         public static string GetModIdStr()
         {
             return thisModIdStr;
-            /*
-            if (thisModIdStr != null) return thisModIdStr;
-
-            Type type = typeof(ModDomain);
-            FieldInfo fieldInfo = type.GetField("ModInfoDict", BindingFlags.NonPublic | BindingFlags.Static);
-            Dictionary<string, ModInfo> modInfoDict = (Dictionary<string, ModInfo>)fieldInfo.GetValue(null);
-
-            foreach (var modInfo in modInfoDict)
-            {
-                if (modInfo.Value.Title == "神话功法")
-                {
-                    thisModIdStr = modInfo.Key;
-                }
-                return thisModIdStr;
-            }
-            throw new KeyNotFoundException("神话功法：无法找到本mod的modIdStr");*/
         }
+
 
         //[HarmonyPostfix]
         //[HarmonyPatch(typeof(GameData.Domains.Information.InformationDomain), "ProcessAdvanceMonth")]
         //public static void ProcessAdvanceMonth_Post()
         //{
-        //    var Taiwu = DomainManager.Taiwu.GetTaiwu();
-        //    var context = GameData.Common.DataContextManager.GetCurrentThreadDataContext();
-        //    ItemKey testBook = DomainManager.Item.CreateSkillBook(context,
-        //            templateId: 1234, completePagesCount: 2, lostPagesCount: 0);
-        //    Taiwu.AddInventoryItem(context, testBook, 1);
         //}
+
+
         [HarmonyPostfix]
         [HarmonyPatch(typeof(GameData.Domains.CombatSkill.CombatSkillDomain), "InitializeOnInitializeGameDataModule")]
         public static void InitializeOnInitializeGameDataModule_Post()
@@ -153,6 +170,14 @@ namespace SpellsFromTheWest
             NewEvents.ClearDefenseSkillEndingHandlers();
         }
 
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(GlobalDomain), "LeaveWorld")]
+        public static bool LeaveWorld_Prefix()
+        {
+            AdaptableLog.Info("leave world");
+            HephaestusCommon.OnUnloading();
+            return true;
+        }
         /* no longer needed as we are patching CreateItem
         [HarmonyPrefix]
         [HarmonyPatch(typeof(BuildingDomain), "GetWestRandomItemByGarde")]
@@ -215,102 +240,40 @@ namespace SpellsFromTheWest
             }
             return true;
         }
-        /*
-        [HarmonyPrefix]
-        [HarmonyPatch(typeof(ItemDomain), "CreateMisc")]
-        public static bool CreateMisc_PreFix(DataContext context, short templateId, ItemKey __result)
+   
+        private void DoInfection(DataContext context, GameData.Domains.Character.Character character, GameData.Domains.Character.Character target, sbyte makeLoveState)
         {
+            bool characterHasInfectionHet = character.GetFeatureIds().Contains(550);
+            bool characterHasInfectionHomo = character.GetFeatureIds().Contains(551);
+            bool tgtHasInfectionHet = character.GetFeatureIds().Contains(550);
+            bool tgtHasInfectionHomo = character.GetFeatureIds().Contains(551);
 
-            __result = new ItemKey();
-
-            if (replaceChance <= 0) { return true; }
-            Utils.DebugBreak();
-            var template = Config.Misc.Instance[templateId];
-            if (template.ItemSubType == 1203 && context.Random.CheckPercentProb(replaceChance))
+            if (character.GetGender() == target.GetGender())
             {
-                Utils.DebugBreak();
-                int newtemplateId = CreateSkillBookObjHelper.GetRandomBookTemplateId(context, template.TemplateId);
-                __result = DomainManager.Item.CreateSkillBook(context, (short)newtemplateId);
-                return false;
-            }
-            return true;
-        }*/
-        public override void OnLoadedArchiveData()
-        {
-            DataContext context = DataContextManager.GetCurrentThreadDataContext();
-            base.OnEnterNewWorld();
-            Utils.DebugBreak();
-            if (learnAll)
-            {
-                var taiwuId = DomainManager.Taiwu.GetTaiwuCharId();
-                foreach (short templateId in CreateCombatSkillObjHelper.CombatSkillTemplateIds)
+                if (characterHasInfectionHet && !tgtHasInfectionHet && !tgtHasInfectionHomo) 
                 {
-                    TaiwuCombatSkill skill;
-                    if (!DomainManager.Taiwu.TryGetElement_CombatSkills(templateId, out skill))
-                    {
-                        DomainManager.Taiwu.TaiwuLearnCombatSkill(context, templateId, ushort.MaxValue);
-                        DomainManager.Taiwu.TryGetElement_CombatSkills(templateId, out skill);
-                    }
-                    var element_CombatSkills = 
-                        DomainManager.CombatSkill.GetElement_CombatSkills(new CombatSkillKey(
-                           taiwuId, templateId));
-                    element_CombatSkills.SetPracticeLevel(100, context);
-
-
+                    target.AddFeature(context, STD.TemplateHet);
+                }
+                if (!characterHasInfectionHet && tgtHasInfectionHet && !characterHasInfectionHomo)
+                {
+                    character.AddFeature(context, STD.TemplateHet);
                 }
             }
+            else
+            {
+                if (characterHasInfectionHomo && !tgtHasInfectionHomo && !tgtHasInfectionHet)
+                {
+                    target.AddFeature(context, STD.TemplateHomo);
+                }
+                if (!characterHasInfectionHomo && tgtHasInfectionHomo && !characterHasInfectionHomo)
+                {
+                    character.AddFeature(context, STD.TemplateHomo);
+                }
+            }
+
+            ;
         }
-        //[HarmonyPrefix]
-        //[HarmonyPatch(typeof(Tester), "Assert")]
-        //public static bool Assert_PreFix()
-        //{
 
-        //    return false;
-
-        //}
-        //[HarmonyPrefix]
-        //[HarmonyPatch(typeof(SpecialEffectDomain), "Add", new Type[]
-        //{
-        //    typeof(DataContext),
-        //    typeof(int),
-        //    typeof(string)
-        //})]
-        //public static bool FixAdd(DataContext context, int charId, string effectName, SpecialEffectDomain __instance, out long __result)
-        //{
-        //    if (!effectName.StartsWith("SpellsFromTheWest"))
-        //    {
-        //        __result = 0;
-        //        return true;
-        //    }
-
-        //    Type type = AccessTools.TypeByName(effectName);
-        //    if (type == null)
-        //    {
-        //        throw new Exception("Cannot find type '" + effectName + "'.");
-        //    }
-        //    SpecialEffectBase specialEffectBase = (SpecialEffectBase)Activator.CreateInstance(type, new object[]
-        //    {
-        //        charId
-        //    });
-        //    __instance.Add(context, specialEffectBase);
-        //    __result = specialEffectBase.Id;
-        //    return false;
-        //}
-        //// Token: 0x06000009 RID: 9 RVA: 0x00002284 File Offset: 0x00000484
-        //[HarmonyPrefix]
-        //[HarmonyPatch(typeof(SpecialEffectDomain), "Add", new Type[]
-        //{
-        //    typeof(DataContext),
-        //    typeof(int),
-        //    typeof(short),
-        //    typeof(sbyte),
-        //    typeof(sbyte)
-        //})]
-        //public static bool FixAdd(DataContext context, int charId, short skillTemplateId, sbyte effectActiveType, 
-        //    sbyte direction, SpecialEffectDomain __instance)
-        //{
-        //    return true;
-        //}
 
         static public Type MyGetType(Type currentType, string NeededType)
         {

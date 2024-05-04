@@ -155,7 +155,15 @@ namespace SpellsFromTheWest
 #endif
             // using the original representation of the game will generate an error here.
             // instead, pass in an array with 12 integers. (first in pair is value, second in pair is level 1/2/3.
-            return new PoisonsAndLevels(parseArrShort(input));
+            try
+            {
+                return new PoisonsAndLevels(parseArrShort(input));
+            }
+            catch (Exception e)
+            {
+                AdaptableLog.Warning("Parse poison failed for input=" + input);
+                return new PoisonsAndLevels(new short[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 });
+            }
         }
         public static List<PropertyAndValue> parseListPropertyValue(String input)
         {

@@ -72,6 +72,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AddCharacterFeature.cs" />
     <Compile Include="AddConfig.cs" />
     <Compile Include="Class1.cs" />
     <Compile Include="DataConfigAppender.cs" />

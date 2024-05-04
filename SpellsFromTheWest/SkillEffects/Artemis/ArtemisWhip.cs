@@ -18,7 +18,7 @@ namespace GameData.Domains.SpecialEffect.SpellsFromTheWest.Artemis
     internal class ArtemisWhip : ArtemisBoilerplateCuiPo
     {
         public ArtemisWhip() { }
-        public ArtemisWhip(CombatSkillKey skillKey) : base(skillKey, 94104, -1) { }
+        public ArtemisWhip(CombatSkillKey skillKey) : base(skillKey, 94110, -1) { }
 
         public override void OnArtemisHuntComplete(DataContext context, int attackerId, int defenderId, sbyte bodyPart)
         {

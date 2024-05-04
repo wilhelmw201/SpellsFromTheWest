@@ -25,7 +25,7 @@ namespace SpellsFromTheWestBackend
 
         public static void RaiseDefenseSkillEnding(DataContext context, CombatCharacter combatChar)
         {
-            Utils.DebugBreak();
+            if (_onDefenseSkillEndHandlers != null)
             _onDefenseSkillEndHandlers(context, combatChar);
         }
 
